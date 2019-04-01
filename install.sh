@@ -7,4 +7,4 @@ else
 fi
 
 # Install the executable
-install -m 0755 -D ${LOCALBASE}/sbin pc-installdialog
+install -m 0755 pc-installdialog ${LOCALBASE}/sbin
