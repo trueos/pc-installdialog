@@ -975,7 +975,11 @@ gen_pc-sysinstall_cfg()
 
    # Are we enabling SSHD?
    if [ "$SYSSSHD" = "YES" ] ; then
-     echo "runCommand=rc-update add sshd default" >> ${CFGFILE}
+     if [ -e "/sbin/openrc" ] ; then
+       echo "runCommand=rc-update add sshd default" >> ${CFGFILE}
+     else
+       echo "runCommand=sysrc -f /etc/rc.conf sshd_enable=\"YES\"" >> ${CFGFILE}
+     fi
    fi
 
    # Check for any post-install commands
