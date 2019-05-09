@@ -698,6 +698,32 @@ get_user_realname()
   USERREALNAME="$ANS"
 }
 
+get_os_flavor()
+{
+  if [ -z "$osflavors" ] ; then
+    return
+  fi
+
+  for flavor in $osflavors
+  do
+	desc=$(jq -r '."iso"."os-flavors"."'${flavor}'"."description"' ${TRUEOS_MANIFEST})
+	flavorlist="$flavorlist $flavor \"$desc\""
+  done
+
+  while :
+  do
+    get_dlg_ans "--menu \"Select the Operating System Flavor\" 12 65 10 ${flavorlist}"
+    if [ -z "$ANS" ] ; then
+      echo "Invalid flavor entered."
+      continue
+    else
+      break
+    fi
+  done
+  OSINSTALLFLAVOR="$ANS"
+}
+
+
 get_user_shell()
 {
   while :
@@ -914,6 +940,12 @@ gen_pc-sysinstall_cfg()
    echo "# Set the ZFS pool name" >> ${CFGFILE}
    echo "zpoolName=${POOLNAME}" >> ${CFGFILE}
 
+   # Set a base flavor if specified
+   if [ -n "$OSINSTALLFLAVOR" ] ; then
+     echo "# Set the os base flavor" >> ${CFGFILE}
+     echo "baseFlavor=${OSINSTALLFLAVOR}" >> ${CFGFILE}
+   fi
+
    # Now do the disk block
    echo "" >> ${CFGFILE}
    echo "# Disk Setup for $SYSDISK" >> ${CFGFILE}
@@ -1013,6 +1045,7 @@ start_full_wizard()
 {
   # Start the wizard
   get_sys_type
+  get_os_flavor
   get_target_disk
   get_target_part
 
@@ -1113,6 +1146,8 @@ load_manifest_defaults()
 		POOLNAME="$newpool"
 	fi
 
+	# Check if list of flavors provided in manifest
+	osflavors=$(jq -r '."iso"."os-flavors" | keys[]' ${TRUEOS_MANIFEST} 2>/dev/null | tr -s '\n' ' ')
 }
 
 if [ -e "$TRUEOS_MANIFEST" ] ; then
