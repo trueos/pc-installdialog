@@ -1004,7 +1004,7 @@ gen_pc-sysinstall_cfg()
    # Since on TrueOS, lets save username / passwords
    echo "rootPass=${ROOTPW}" >> ${CFGFILE}
    echo "" >> ${CFGFILE}
-   if [ -n "${USERNAME}" ] ; then
+   if [ -n "${USERNAME}" ] && [ -n "${USERPW}" ] ; then
      echo "userName=${USERNAME}" >> ${CFGFILE}
      echo "userComment=${USERREALNAME}" >> ${CFGFILE}
      echo "userPass=${USERPW}" >> ${CFGFILE}
