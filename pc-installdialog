@@ -722,16 +722,16 @@ get_os_flavor()
   done
   OSINSTALLFLAVOR="$ANS"
 
-  # Check if the manifest specified an alternative flavor name to install
-  altflavor=$(jq -r '."iso"."os-flavors"."'$OSINSTALLFLAVOR'"."flavor"' ${TRUEOS_MANIFEST})
-  if [ -n "$altflavor" -a "$altflavor" != "null" ] ; then
-    OSINSTALLFLAVOR="$altflavor"
-  fi
-
   # If this flavor defines any new packages to install, grab those now
   flavorpkgs=$(jq -r '."iso"."os-flavors"."'$OSINSTALLFLAVOR'"."packages"' ${TRUEOS_MANIFEST})
   if [ -n "$flavorpkgs" -a "$flavorpkgs" != "null" ] ; then
     EXTRAPKGS="$flavorpkgs"
+  fi
+
+  # Check if the manifest specified an alternative flavor name to install
+  altflavor=$(jq -r '."iso"."os-flavors"."'$OSINSTALLFLAVOR'"."flavor"' ${TRUEOS_MANIFEST})
+  if [ -n "$altflavor" -a "$altflavor" != "null" ] ; then
+    OSINSTALLFLAVOR="$altflavor"
   fi
 }
 
