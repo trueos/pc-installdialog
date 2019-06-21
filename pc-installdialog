@@ -1182,8 +1182,8 @@ load_manifest_defaults()
 	# Check if list of flavors provided in manifest
 	osflavors=$(jq -r '."iso"."os-flavors" | keys[]' ${TRUEOS_MANIFEST} 2>/dev/null | tr -s '\n' ' ')
 	#Load the list of install steps that are desired
-	dlg_pages=$(jq -r '."iso"."install-dialog"."pages"[]' ${TRUEOS_MANIFEST} 2>/dev/null | tr -s '\n' ' ')
-	if [ "${dlg_pages}" = "null" ] ; then dlg_pages="" ; fi
+	install_pages=$(jq -r '."iso"."install-dialog"."pages"[]' ${TRUEOS_MANIFEST} 2>/dev/null | tr -s '\n' ' ')
+	if [ "${install_pages}" = "null" ] ; then install_pages="" ; fi
 }
 
 if [ -e "$TRUEOS_MANIFEST" ] ; then
