@@ -1077,7 +1077,7 @@ start_full_wizard()
         get_root_pw
         ;;
       create_user) 
-        get_use_name
+        get_user_name
         get_user_realname
         get_user_pw
         get_user_shell
