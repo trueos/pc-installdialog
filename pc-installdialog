@@ -1004,12 +1004,14 @@ gen_pc-sysinstall_cfg()
    # Since on TrueOS, lets save username / passwords
    echo "rootPass=${ROOTPW}" >> ${CFGFILE}
    echo "" >> ${CFGFILE}
-   echo "userName=${USERNAME}" >> ${CFGFILE}
-   echo "userComment=${USERREALNAME}" >> ${CFGFILE}
-   echo "userPass=${USERPW}" >> ${CFGFILE}
-   echo "userShell=${USERSHELL}" >> ${CFGFILE}
-   echo "userHome=/home/${USERNAME}" >> ${CFGFILE}
-   echo "userGroups=wheel,operator,video" >> ${CFGFILE}
+   if [ -n "${USERNAME}" ] && [ -n "${USERPW}" ] && [ -n "${USERSHELL}" ] ; then
+     echo "userName=${USERNAME}" >> ${CFGFILE}
+     echo "userComment=${USERREALNAME}" >> ${CFGFILE}
+     echo "userPass=${USERPW}" >> ${CFGFILE}
+     echo "userShell=${USERSHELL}" >> ${CFGFILE}
+     echo "userHome=/home/${USERNAME}" >> ${CFGFILE}
+     echo "userGroups=wheel,operator,video" >> ${CFGFILE}
+   fi
    echo "commitUser" >> ${CFGFILE}
 
    # Last cleanup stuff
@@ -1057,19 +1059,38 @@ start_full_wizard()
 {
   # Start the wizard
   get_sys_type
-  get_os_flavor
-  get_target_disk
-  get_target_part
-
-  # If doing a server setup, need to prompt for some more details
-  if [ "$SYSTYPE" = "server" ] ; then
-     get_root_pw
-     get_user_name
-     get_user_realname
-     get_user_pw
-     get_user_shell
-     change_networking
+  if [ -z "${install_pages}" ] ; then
+    install_pages="os_flavor disk"
+    if [ "$SYSTYPE" = "server" ] ; then
+      install_pages="${install_pages} root_pw create_user networking"
+    fi
   fi
+
+  #Go through pages in designated order
+  for page in ${install_pages}
+  do
+    case "${page}" in
+      os_flavor)
+        get_os_flavor
+        ;;
+      root_pw)
+        get_root_pw
+        ;;
+      create_user) 
+        get_user_name
+        get_user_realname
+        get_user_pw
+        get_user_shell
+        ;;
+      disk) 
+        get_target_disk
+        get_target_part
+        ;;
+      networking)
+        change_networking
+        ;;
+    esac
+  done
   gen_pc-sysinstall_cfg
 }
 
@@ -1160,6 +1181,9 @@ load_manifest_defaults()
 
 	# Check if list of flavors provided in manifest
 	osflavors=$(jq -r '."iso"."os-flavors" | keys[]' ${TRUEOS_MANIFEST} 2>/dev/null | tr -s '\n' ' ')
+	#Load the list of install steps that are desired
+	install_pages=$(jq -r '."iso"."install-dialog"."pages"[]' ${TRUEOS_MANIFEST} 2>/dev/null | tr -s '\n' ' ')
+	if [ "${install_pages}" = "null" ] ; then install_pages="" ; fi
 }
 
 if [ -e "$TRUEOS_MANIFEST" ] ; then
