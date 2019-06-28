@@ -43,8 +43,12 @@ PIJSON="/root/post-install-commands.json"
 # Default swapsize in MB
 SWAPSIZE="4000"
 
-# Default boot pool name
+# Default boot pool name (before loading manifest)
 POOLNAME="zroot"
+zpool list -H -o name | grep -q "${POOLNAME}"
+if [ $? -eq 0 ] ; then
+  POOLNAME="zboot" #fallback default if the original default is already in-use
+fi
 
 # Set location of default TrueOS Manifest
 TRUEOS_MANIFEST="/root/trueos-manifest.json"
@@ -127,6 +131,30 @@ get_zpool_cfg_menu()
        done) break ;;
           *) ASHIFTSIZE="$ANS" ;;
     esac
+  done
+}
+
+change_zpool_name() {
+  while :
+  do
+    #Ask for user name and make sure it is not empty
+    get_dlg_ans "--inputbox 'Enter a ZFS pool name' 8 40 ${POOLNAME}"
+    if [ -z "$ANS" ] ; then
+       echo "Invalid name entered." >> /tmp/.vartemp.$$
+       dialog --tailbox /tmp/.vartemp.$$ 8 35
+       rm /tmp/.vartemp.$$
+       continue
+    fi
+    #check for invalid characters
+    echo "$ANS" | grep -q '^[a-zA-Z0-9]*$'
+    if [ $? -eq 1 ] ; then
+       echo "Name contains invalid characters." >> /tmp/.vartemp.$$
+       dialog --tailbox /tmp/.vartemp.$$ 8 35
+       rm /tmp/.vartemp.$$
+       continue
+    fi
+    POOLNAME="$ANS"
+    break
   done
 }
 
@@ -1090,6 +1118,9 @@ start_full_wizard()
       networking)
         change_networking
         ;;
+      pool_name)
+        change_zpool_name
+        ;;
     esac
   done
   gen_pc-sysinstall_cfg
@@ -1108,13 +1139,15 @@ start_edit_menu_loop()
 
   while :
   do
-    dialog --title "${BRAND} Text Install - Edit Menu" --menu "Select:" 18 70 10 disk "Change disk ($SYSDISK)" pool "ZFS pool layout" datasets "ZFS datasets" zpoolcfg "ZFS Pool Config" network "Change networking" swap "Change swap size" view "View install script" edit "Edit install script" back "Back to main menu" 2>/tmp/answer
+    dialog --title "${BRAND} Text Install - Edit Menu" --menu "Select:" 18 70 10 disk "Change disk ($SYSDISK)" pname "ZFS pool name" pool "ZFS pool layout" datasets "ZFS datasets" zpoolcfg "ZFS Pool Config" network "Change networking" swap "Change swap size" view "View install script" edit "Edit install script" back "Back to main menu" 2>/tmp/answer
     if [ $? -ne 0 ] ; then break ; fi
 
     ANS="`cat /tmp/answer`"
 
     case $ANS in
        disk) change_disk_selection
+             ;;
+       pname) change_zpool_name
              ;;
        pool) change_zpool
 	     ;;
