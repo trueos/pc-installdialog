@@ -1011,8 +1011,9 @@ gen_pc-sysinstall_cfg()
      echo "userShell=${USERSHELL}" >> ${CFGFILE}
      echo "userHome=/home/${USERNAME}" >> ${CFGFILE}
      echo "userGroups=wheel,operator,video" >> ${CFGFILE}
+     echo "commitUser" >> ${CFGFILE}
    fi
-   echo "commitUser" >> ${CFGFILE}
+
 
    # Last cleanup stuff
    echo "" >> ${CFGFILE}
