@@ -1055,6 +1055,11 @@ gen_pc-sysinstall_cfg()
      else
        echo "runCommand=sysrc -f /etc/rc.conf sshd_enable=\"YES\"" >> ${CFGFILE}
      fi
+     grep -q "userName=" ${CFGFILE}
+     if [ $? -ne 0 ] ; then
+       #No user created  - make sure we enable root access over SSH too
+       echo 'runCommand=echo "PermitRootLogin yes" >> /etc/ssh/sshd_config' >> ${CFGFILE}
+     fi
    fi
 
    # Check for any post-install commands
