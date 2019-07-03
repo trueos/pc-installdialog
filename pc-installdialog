@@ -779,6 +779,20 @@ get_user_shell()
   USERSHELL="$ANS"
 }
 
+get_user_filesystem(){
+  while :
+  do
+    get_dlg_ans "--menu \"Select the filesystem type\" 12 45 10 ZFS \"OpenZFS Filesystem\" UFS \"Unix Filesystem (with SUJ)\""
+    if [ -z "$ANS" ] ; then
+      echo "Invalid shell entered."
+      continue
+    else
+      USE_FS="${ANS}"
+      break
+    fi
+  done
+}
+
 get_hostname()
 {
   while :
@@ -1003,22 +1017,30 @@ gen_pc-sysinstall_cfg()
    echo "# UFS.eli, UFS+S.eli, UFS+SUJ, UFS+J.eli, ZFS.eli, SWAP.eli" >> ${CFGFILE}
 
    # What file-system are we using now?
-   FSTAG="ZFS"
-   if [ "$USINGGELI" = "YES" ] ; then FSTAG="ZFS.eli"; fi
+   if [ "${USE_FS}" = "ZFS" ] ; then
+     FSTAG="ZFS"
+     if [ "$USINGGELI" = "YES" ] ; then FSTAG="ZFS.eli"; fi
 
-   # Doing a single disk zpool, or a mirror/raidz[1-3]?
-   if [ "$ZPOOL_TYPE" = "single" ] ; then
-     echo "disk0-part=$FSTAG 0 ${ZFSLAYOUT}" >> ${CFGFILE}
+     # Doing a single disk zpool, or a mirror/raidz[1-3]?
+     if [ "$ZPOOL_TYPE" = "single" ] ; then
+       echo "disk0-part=$FSTAG 0 ${ZFSLAYOUT}" >> ${CFGFILE}
+     else
+       echo "disk0-part=$FSTAG 0 ${ZFSLAYOUT} (${ZPOOL_TYPE}: `echo $ZPOOL_DISKS | sed 's|/dev/||g'`)" >> ${CFGFILE}
+     fi
    else
-     echo "disk0-part=$FSTAG 0 ${ZFSLAYOUT} (${ZPOOL_TYPE}: `echo $ZPOOL_DISKS | sed 's|/dev/||g'`)" >> ${CFGFILE}
+     FSTAG="UFS+SUJ"
+     if [ "${USINGGELI}" = "YES" ] ; then FSTAG="UFS+SUJ.eli" ; fi
+     echo "disk0-part=${FSTAG} 500 /" >> ${CFGFILE}
    fi
-
    # If using GELI encryption, add it to config file
    if [ "$USINGGELI" = "YES" ] ; then
      echo "encpass=$GELIPASS" >> ${CFGFILE}
    fi
 
    echo "disk0-part=SWAP.eli ${SWAPSIZE} none" >> ${CFGFILE}
+   if [ "${USE_FS}" = "UFS" ] ; then
+     echo "disk0-part=${FSTAG} 0 /usr" >> ${CFGFILE}
+   fi
    echo "commitDiskLabel" >> ${CFGFILE}
    echo "" >> ${CFGFILE}
 
@@ -1101,6 +1123,9 @@ start_full_wizard()
   fi
 
   #Go through pages in designated order
+  if [ -z "${USE_FS}" ] ; then
+    get_user_filesystem
+  fi
   for page in ${install_pages}
   do
     case "${page}" in
@@ -1124,7 +1149,9 @@ start_full_wizard()
         change_networking
         ;;
       pool_name)
-        change_zpool_name
+        if [ "${USE_FS}" = "ZFS" ; then
+        	change_zpool_name
+	fi
         ;;
     esac
   done
@@ -1141,10 +1168,14 @@ change_networking() {
 
 start_edit_menu_loop()
 {
-
+  local opts='disk "Change disk ($SYSDISK)" network "Change networking" swap "Change swap size" view "View install script" edit "Edit install script"'
+  if [ "${USE_FS}" = "ZFS" ] ; then
+    opts="${opts} pname \"ZFS pool name\" pool \"ZFS pool layout\" datasets \"ZFS datasets\" zpoolcfg \"ZFS Pool Config\""
+  fi
+  opts="${opts}  back \"Back to main menu\""
   while :
   do
-    dialog --title "${BRAND} Text Install - Edit Menu" --menu "Select:" 18 70 10 disk "Change disk ($SYSDISK)" pname "ZFS pool name" pool "ZFS pool layout" datasets "ZFS datasets" zpoolcfg "ZFS Pool Config" network "Change networking" swap "Change swap size" view "View install script" edit "Edit install script" back "Back to main menu" 2>/tmp/answer
+    dialog --title "${BRAND} Text Install - Edit Menu" --menu "Select:" 18 70 10  ${opts} 2>/tmp/answer
     if [ $? -ne 0 ] ; then break ; fi
 
     ANS="`cat /tmp/answer`"
@@ -1223,6 +1254,14 @@ load_manifest_defaults()
 	#Load the list of install steps that are desired
 	install_pages=$(jq -r '."iso"."install-dialog"."pages"[]' ${TRUEOS_MANIFEST} 2>/dev/null | tr -s '\n' ' ')
 	if [ "${install_pages}" = "null" ] ; then install_pages="" ; fi
+	#Determine if UFS or ZFS is forced/available
+	USE_FS=$(jq -r '."iso"."install-dialog"."use_filesystem"' ${TRUEOS_MANIFEST})
+        if [ "${USE_FS}" = "zfs" ] || [ "${USE_FS}" == "ufs" ] ; then
+		USE_FS=$( echo "${USE_FS}" | tr "[:lower:]" "[:upper:]")
+	else
+		USE_FS=""
+	fi
+       
 }
 
 if [ -e "$TRUEOS_MANIFEST" ] ; then
