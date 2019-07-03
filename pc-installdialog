@@ -1030,7 +1030,7 @@ gen_pc-sysinstall_cfg()
    else
      FSTAG="UFS+SUJ"
      if [ "${USINGGELI}" = "YES" ] ; then FSTAG="UFS+SUJ.eli" ; fi
-     echo "disk0-part=${FSTAG} 500 /" >> ${CFGFILE}
+     echo "disk0-part=${FSTAG} 0 /" >> ${CFGFILE}
    fi
    # If using GELI encryption, add it to config file
    if [ "$USINGGELI" = "YES" ] ; then
@@ -1038,9 +1038,6 @@ gen_pc-sysinstall_cfg()
    fi
 
    echo "disk0-part=SWAP.eli ${SWAPSIZE} none" >> ${CFGFILE}
-   if [ "${USE_FS}" = "UFS" ] ; then
-     echo "disk0-part=${FSTAG} 0 /usr" >> ${CFGFILE}
-   fi
    echo "commitDiskLabel" >> ${CFGFILE}
    echo "" >> ${CFGFILE}
 
