@@ -68,6 +68,18 @@ rtn()
   read tmp
 }
 
+validateIP(){
+# validate an IP address from user
+# OUTPUT: 0 for success, 1 for error
+# $1 : current value
+  echo "${1}" | grep -qE '^(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])$'
+  if [ $? -ne 0 ] ; then
+    return 1
+  else
+    return 0
+  fi
+}
+
 change_zpool()
 {
   get_zpool_menu
@@ -851,9 +863,9 @@ get_netconfig()
       rm /tmp/.vartemp.$$
       continue
       fi
-    echo "$ANS" | grep -q '^[0-9.]*$'
+    validateIP "${ANS}"
     if [ $? -eq 1 ] ; then
-      echo "IP address contains invalid characters." >> /tmp/.vartemp.$$
+      echo "IP address is invalid" >> /tmp/.vartemp.$$
       dialog --tailbox /tmp/.vartemp.$$ 8 38
       rm /tmp/.vartemp.$$
       continue
@@ -866,16 +878,16 @@ get_netconfig()
   #Set Netmask and check for invalid characters
   while :
   do
-    get_dlg_ans "--inputbox \"Enter the netmask for $SYSNIC\" 8 40"
+    get_dlg_ans "--inputbox \"Enter the netmask for $SYSNIC in IP format\" 8 40"
       if [ -z "$ANS" ] ; then
       echo "Netmask cannot be blank."  >> /tmp/.vartemp.$$
       dialog --tailbox /tmp/.vartemp.$$ 8 35
       rm /tmp/.vartemp.$$
       continue
     fi
-    echo "$ANS" | grep -q '^[0-9.]*$'
+    validateIP "${ANS}"
     if [ $? -eq 1 ] ; then
-      echo "Netmask contains invalid characters." >> /tmp/.vartemp.$$
+      echo "Netmask is invalid" >> /tmp/.vartemp.$$
       dialog --tailbox /tmp/.vartemp.$$ 8 45
       rm /tmp/.vartemp.$$
       continue
@@ -895,9 +907,9 @@ get_netconfig()
       rm /tmp/.vartemp.$$
       continue
       fi
-    echo "$ANS" | grep -q '^[0-9.]*$'
+    validateIP "${ANS}"
     if [ $? -eq 1 ] ; then
-      echo "DNS nameserver IP address contains invalid characters." >> /tmp/.vartemp.$$
+      echo "DNS nameserver IP address is invalid" >> /tmp/.vartemp.$$
       dialog --tailbox /tmp/.vartemp.$$ 8 45
       rm /tmp/.vartemp.$$
       continue
@@ -917,9 +929,9 @@ get_netconfig()
       rm /tmp/.vartemp.$$
       continue
       fi
-    echo "$ANS" | grep -q '^[0-9.]*$'
+    validateIP "${ANS}"
     if [ $? -eq 1 ] ; then
-      echo "Gateway IP address contains invalid characters." >> /tmp/.vartemp.$$
+      echo "Gateway IP address is invalid." >> /tmp/.vartemp.$$
       dialog --tailbox /tmp/.vartemp.$$ 8 45
       rm /tmp/.vartemp.$$
       continue
